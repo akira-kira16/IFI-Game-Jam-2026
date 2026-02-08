@@ -1,6 +1,222 @@
-# Synposis 
+import pygame
+import sys
+
+#Initialize Pygame
+pygame.init()
+
+#Setup Display
+SCREEN_WIDTH = 1080
+SCREEN_HEIGHT = 720
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("The Entity")
+clock = pygame.time.Clock()
 
 
-if whatever 
+#Exposition (INTRO)
 
+GAME_FONT = pygame.freetype.SysFont("Times New Roman", 28)
 
+lines = [
+    "It was just another average Tuesday evening in my hometown…",
+    "Nothing seemed amiss, until I suddenly heard a scream from outside my window.",
+    "As I ran outside, I saw an ominous purple fog seep soundlessly into town, growing as it consumed the town.",
+    "The screaming died down as quick as it started; anyone who made contact with the mysterious entity seemed to collapse immediately.",
+    "I didn’t think, I just ran.",
+    "As The Entity continued to grow, it covered more and more ground.",
+    "I realized…",
+    "The only way out, was up."
+]
+
+TEXT_COLOR = (255, 255, 255)
+BG_COLOR = (0, 0, 0)
+MARGIN_X = 80
+LINE_SPACING = 8
+
+clock = pygame.time.Clock()
+running = True
+index = 0  # hvilken tekstlinje vi viser (én "avsnitt" om gangen)
+
+def wrap_text(font, text, max_width, color):
+    """Returnerer liste av (surface, rect) for hver wrapped linje."""
+    words = text.split(" ")
+    cur_line = ""
+    out = []
+    for letter in words:
+        test = cur_line + ("" if cur_line == "" else " ") + letter
+        surf, rect = font.render(test, color)
+        if rect.width <= max_width:
+            cur_line = test
+        else:
+            if cur_line == "":
+                # Et enkelt ord større enn max_width -> tving det ut som egen linje
+                out.append(font.render(test, color))
+                cur_line = ""
+            else:
+                out.append(font.render(cur_line, color))
+                cur_line = letter
+    if cur_line:
+        out.append(font.render(cur_line, color))
+    return out  # liste av (surface, rect)
+
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                running = False
+            elif event.key == pygame.K_SPACE:
+                index += 1
+                if index >= len(lines):
+                    running = False
+
+    screen.fill(BG_COLOR)
+
+    if index < len(lines):
+        max_w = SCREEN_WIDTH - 2 * MARGIN_X
+        # Lag surfaces for alle wrapped-linjer i dette avsnittet
+        rendered = wrap_text(GAME_FONT, lines[index], max_w, TEXT_COLOR)
+
+        # Beregn total høyde av tekstblokken
+        total_h = 0
+        for surf, rect in rendered:
+            total_h += rect.height + LINE_SPACING
+        total_h -= LINE_SPACING  # fjern siste ekstra spacing
+
+        # Start-y for vertikal sentrering
+        start_y = (SCREEN_HEIGHT - total_h) // 2
+
+        # Tegn hver linje horisontalt sentrert
+        y = start_y
+        for surf, rect in rendered:
+            x = (SCREEN_WIDTH - rect.width) // 2
+            screen.blit(surf, (x, y))
+            y += rect.height + LINE_SPACING
+
+        # Hint nederst (ikke midtstilt)
+        hint = "Press SPACE to continue"
+        hint_surf, hint_rect = GAME_FONT.render(hint, (180, 180, 180))
+        hint_x = (SCREEN_WIDTH - hint_rect.width) // 2
+        hint_y = SCREEN_HEIGHT - 40
+        screen.blit(hint_surf, (hint_x, hint_y))
+
+    pygame.display.flip()
+    clock.tick(60)
+
+#Background
+background_img = pygame.image.load("sky.jpg").convert()
+background_img = pygame.transform.scale(background_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
+#Ground/grass
+ground_img = pygame.image.load("grass.png").convert_alpha()
+ground_img = pygame.transform.scale(ground_img, (SCREEN_WIDTH, 20))
+
+#Constants
+FPS = 60
+GRAVITY = 0.6
+JUMP_POWER = -20
+scroll_y = 0
+
+#Colors
+WHITE = (255, 255, 255)
+BLUE = (0, 0, 255)
+LIGHT_BLUE = (144,213,255)
+DARK_GREEN = (58,124,65)
+BROWN = (139, 69, 19)
+LIGHT_BLUE2 = (200, 230, 255)
+PLAYER_BLUE = (0, 100, 255)
+
+#Player Variables
+player_rect = pygame.Rect(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100, 30, 40)
+y_speed = 0
+platforms = [pygame.Rect(0, SCREEN_HEIGHT - 20, SCREEN_WIDTH, 20)]
+
+#Spawns branches
+def spawn_branch(last_y, side): #Spawns a tree branch
+    width = 370
+    height = 20
+    y = last_y - 180
+    if side == "left":
+        x = 0 
+    else:
+        x = SCREEN_WIDTH - width
+    return pygame.Rect(x, y, width, height)
+
+current_side = "left" #Branch generation
+for i in range(15):
+    new_plat = spawn_branch(platforms[-1].y, current_side)
+    platforms.append(new_plat)
+    current_side = "right" if current_side == "left" else "left"
+
+#Main loop
+run = True
+while run:
+    clock.tick(FPS)
+    
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            run = False
+
+    #Player movement
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT] and player_rect.left > 0: 
+        player_rect.x -= 8
+    if keys[pygame.K_RIGHT] and player_rect.right < SCREEN_WIDTH: 
+        player_rect.x += 8
+
+    #Gravity
+    y_speed += GRAVITY
+    player_rect.y += y_speed
+
+    #Resets player to the lowest visible platform if they fall off
+    if player_rect.top > SCREEN_HEIGHT:
+        if len(platforms) > 0:
+            target_plat = platforms[len(platforms)//2] 
+            player_rect.bottom = target_plat.top
+            player_rect.centerx = target_plat.centerx
+            y_speed = 0
+
+    #Scrolling
+    if player_rect.y < SCREEN_HEIGHT // 2:
+        diff = SCREEN_HEIGHT // 2 - player_rect.y
+        player_rect.y = SCREEN_HEIGHT // 2
+        scroll_y += diff
+        for p in platforms:
+            p.y += diff
+
+    on_ground = False
+
+    #Collision detection with platforms
+    for p in platforms:
+        if player_rect.colliderect(p) and y_speed > 0:
+                if player_rect.bottom - y_speed <= p.top:
+                    player_rect.bottom = p.top
+                    y_speed = 0
+                    on_ground = True
+
+    #Jumping (Only if on ground)
+    if keys[pygame.K_SPACE] and on_ground:
+        y_speed = JUMP_POWER
+
+    #More generation of treee branches
+    platforms = [p for p in platforms if p.y < SCREEN_HEIGHT + 100]
+
+    #Spawn more branches
+    while len(platforms) < 20:
+        new_plat = spawn_branch(platforms[-1].y, current_side)
+        platforms.append(new_plat)
+        current_side = "right" if current_side == "left" else "left"
+
+    #Draw
+    screen.blit(background_img, (0, 0))
+    for i, p in enumerate(platforms):
+        if i == 0 and p.width == SCREEN_WIDTH:
+            screen.blit(ground_img, (p.x, p.y))
+        else:
+            pygame.draw.rect(screen, BROWN, p)
+            
+    pygame.draw.rect(screen, PLAYER_BLUE, player_rect)
+    
+    pygame.display.flip()
+
+pygame.quit()
