@@ -114,9 +114,15 @@ ground_img = pygame.transform.scale(ground_img, (SCREEN_WIDTH, 20))
 #Branch pictures
 branch_img_left = pygame.image.load("branch.png").convert_alpha()
 branch_img_left = pygame.transform.scale(branch_img_left, (370, 60))
-
 #Flipped branch picture for right side
 branch_img_right = pygame.transform.flip(branch_img_left, True, False)
+
+#Player/avatar picture
+player_img_right = pygame.image.load("avatar.png").convert_alpha()
+player_img_right = pygame.transform.scale(player_img_right, (60, 80))
+#Flipped player picture
+player_img_left = pygame.transform.flip(player_img_right, True, False)
+current_player_img = player_img_right
 
 #Constants
 FPS = 60
@@ -134,9 +140,16 @@ LIGHT_BLUE2 = (200, 230, 255)
 PLAYER_BLUE = (0, 100, 255)
 
 #Player Variables
-player_rect = pygame.Rect(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100, 30, 40)
+player_rect = pygame.Rect(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100, 60, 80)
 y_speed = 0
 platforms = [pygame.Rect(0, SCREEN_HEIGHT - 20, SCREEN_WIDTH, 20)]
+
+#Fog variables
+fog_list = []
+fog_speed = 0.2
+fog_spawn_rate = 60
+frame_count = 0
+fog_image = pygame.image.load("the_entity_but_bigger.png").convert_alpha()
 
 #Spawns branches
 def spawn_branch(last_y, side): #Spawns a tree branch
@@ -164,58 +177,81 @@ while run:
         if event.type == pygame.QUIT:
             run = False
 
-    #Player movement
+    # Player movement
     keys = pygame.key.get_pressed()
     if keys[pygame.K_LEFT] and player_rect.left > 0: 
         player_rect.x -= 8
+        current_player_img = player_img_left 
     if keys[pygame.K_RIGHT] and player_rect.right < SCREEN_WIDTH: 
         player_rect.x += 8
+        current_player_img = player_img_right
 
-    #Gravity
+    # Gravity
     y_speed += GRAVITY
     player_rect.y += y_speed
 
-    #Resets player to the lowest visible platform if they fall off
-    if player_rect.top > SCREEN_HEIGHT:
-        if len(platforms) > 0:
-            target_plat = platforms[len(platforms)//2] 
-            player_rect.bottom = target_plat.top
-            player_rect.centerx = target_plat.centerx
-            y_speed = 0
+    # Reset/Fall logic (Adjusted so you don't "die" by accident)
+    if player_rect.top > SCREEN_HEIGHT + 1000:
+        target_plat = platforms[0] # Go to bottom platform
+        player_rect.bottom = target_plat.top
+        player_rect.centerx = SCREEN_WIDTH // 2
+        y_speed = 0
 
-    #Scrolling upwards
+    # Scrolling upwards
     if player_rect.y < SCREEN_HEIGHT // 2:
         diff = SCREEN_HEIGHT // 2 - player_rect.y
         player_rect.y = SCREEN_HEIGHT // 2
         scroll_y += diff
         for p in platforms:
             p.y += diff
+        for fog in fog_list:
+            fog["rect"].y += diff
 
+    # Collision detection with platforms
     on_ground = False
-
-    #Collision detection with platforms
     for p in platforms:
         if player_rect.colliderect(p) and y_speed > 0:
-                if player_rect.bottom - y_speed <= p.top:
-                    player_rect.bottom = p.top
-                    y_speed = 0
-                    on_ground = True
+            if player_rect.bottom - y_speed <= p.top:
+                player_rect.bottom = p.top
+                y_speed = 0
+                on_ground = True
 
-    #Jumping
+    # Jumping
     if keys[pygame.K_SPACE] and on_ground:
         y_speed = JUMP_POWER
 
-    #More generation of treee branches
-    platforms = [p for p in platforms if p.y < SCREEN_HEIGHT + 100]
-
-    #Spawn more branches
+    # Cleanup old platforms and spawn new ones
+    platforms = [p for p in platforms if p.y < SCREEN_HEIGHT + 1000]
     while len(platforms) < 20:
         new_plat = spawn_branch(platforms[-1].y, current_side)
         platforms.append(new_plat)
         current_side = "right" if current_side == "left" else "left"
 
-    #Draw
+    # Fog Spawning Logic
+    if frame_count % fog_spawn_rate == 0:
+        fog_height = 300
+        # Spawn it way below the player
+        new_fog_rect = pygame.Rect(0, SCREEN_HEIGHT + 600, SCREEN_WIDTH, fog_height)
+        
+        # Scaling the image to fit
+        fog_scaled = pygame.transform.smoothscale(fog_image, (SCREEN_WIDTH, fog_height))
+        fog_list.append({"rect": new_fog_rect, "image": fog_scaled})
+
+    #Move fog up and check for Game Over
+    for fog in fog_list:
+        fog["rect"].y -= fog_speed
+        if player_rect.colliderect(fog["rect"]):
+            print("The Entity consumed you!")
+            run = False
+
+    #Keep only the newest fog pieces to prevent lag
+    if len(fog_list) > 10:
+        fog_list.pop(0)
+
+    #DRAW SECTION
     screen.blit(background_img, (0, 0))
+    
+    #Draw Platforms
     for i, p in enumerate(platforms):
         if i == 0 and p.width == SCREEN_WIDTH:
             screen.blit(ground_img, (p.x, p.y))
@@ -225,8 +261,16 @@ while run:
             else:
                 screen.blit(branch_img_left, p)
             
-    pygame.draw.rect(screen, PLAYER_BLUE, player_rect)
+    #Draw Fog
+    for fog in fog_list:
+        screen.blit(fog["image"], (fog["rect"].x, fog["rect"].y))
+
+    #Draw Player
+    screen.blit(current_player_img, (player_rect.x, player_rect.y))
     
+    #Update frames and display
+    frame_count += 1 
     pygame.display.flip()
 
 pygame.quit()
+sys.exit()
