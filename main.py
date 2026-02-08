@@ -8,7 +8,7 @@ pygame.init()
 SCREEN_WIDTH = 1080
 SCREEN_HEIGHT = 720
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("The Entity")
+pygame.display.set_caption("The Growing Entity")
 clock = pygame.time.Clock()
 
 
@@ -111,6 +111,13 @@ background_img = pygame.transform.scale(background_img, (SCREEN_WIDTH, SCREEN_HE
 ground_img = pygame.image.load("grass.png").convert_alpha()
 ground_img = pygame.transform.scale(ground_img, (SCREEN_WIDTH, 20))
 
+#Branch pictures
+branch_img_left = pygame.image.load("branch.png").convert_alpha()
+branch_img_left = pygame.transform.scale(branch_img_left, (370, 60))
+
+#Flipped branch picture for right side
+branch_img_right = pygame.transform.flip(branch_img_left, True, False)
+
 #Constants
 FPS = 60
 GRAVITY = 0.6
@@ -176,7 +183,7 @@ while run:
             player_rect.centerx = target_plat.centerx
             y_speed = 0
 
-    #Scrolling
+    #Scrolling upwards
     if player_rect.y < SCREEN_HEIGHT // 2:
         diff = SCREEN_HEIGHT // 2 - player_rect.y
         player_rect.y = SCREEN_HEIGHT // 2
@@ -194,7 +201,7 @@ while run:
                     y_speed = 0
                     on_ground = True
 
-    #Jumping (Only if on ground)
+    #Jumping
     if keys[pygame.K_SPACE] and on_ground:
         y_speed = JUMP_POWER
 
@@ -213,7 +220,10 @@ while run:
         if i == 0 and p.width == SCREEN_WIDTH:
             screen.blit(ground_img, (p.x, p.y))
         else:
-            pygame.draw.rect(screen, BROWN, p)
+            if p.x > 0:
+                screen.blit(branch_img_right, p)
+            else:
+                screen.blit(branch_img_left, p)
             
     pygame.draw.rect(screen, PLAYER_BLUE, player_rect)
     
