@@ -2,7 +2,9 @@ import pygame
 import sys
 
 pygame.init()
-
+pygame.mixer.init()
+pygame.mixer.music.load('skummel_musikk.mp3')
+pygame.mixer.music.play(-1)
 # Setup Display
 SCREEN_WIDTH = 1080
 SCREEN_HEIGHT = 720
