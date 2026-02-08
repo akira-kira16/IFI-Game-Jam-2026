@@ -1,5 +1,6 @@
 import pygame
 import sys
+import os
 
 pygame.init()
 pygame.mixer.init()
@@ -124,7 +125,7 @@ platforms = [pygame.Rect(0, SCREEN_HEIGHT - 20, SCREEN_WIDTH, 20)]
 
 # Fog variables
 fog_list = []
-fog_speed = 1.2
+fog_speed = 0.2
 fog_spawn_rate = 60
 frame_count = 0
 
@@ -143,6 +144,40 @@ for i in range(15):
     new_plat = spawn_branch(platforms[-1].y, current_side)
     platforms.append(new_plat)
     current_side = "right" if current_side == "left" else "left"
+
+# Death screen 
+def show_game_over_screen():
+    big_font = pygame.font.SysFont("Times New Roman", 48)
+    small_font = pygame.font.SysFont("Times New Roman", 28)
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    # Restart program
+                    python = sys.executable
+                    os.execv(python, [python] + sys.argv)
+                elif event.key == pygame.K_q or event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    sys.exit()
+
+        screen.fill((0, 0, 0))
+        # Main message
+        game_over_text = "It's hopeless... The Entity consumed you!"
+        text_surf = big_font.render(game_over_text, True, (255, 0, 0))
+        text_rect = text_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 40))
+        screen.blit(text_surf, text_rect)
+
+        # Hint
+        hint_text = "Press R to Restart or Q / ESC to Quit"
+        hint_surf = small_font.render(hint_text, True, (200, 200, 200))
+        hint_rect = hint_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 60))
+        screen.blit(hint_surf, hint_rect)
+
+        pygame.display.flip()
+        clock.tick(30)
 
 # Main loop
 run = True
@@ -221,7 +256,10 @@ while run:
         fog["rect"].y = int(fog_screen_y)
 
         if player_rect.colliderect(fog["rect"]):
-            print("The Entity consumed you!")
+            # Vis døds-skjerm i stedet for å sette run = False og avslutte
+            show_game_over_screen()
+            # show_game_over_screen håndterer restart eller exit; if it returns,
+            # we break out to be safe (but it shouldn't return)
             run = False
             break
 
@@ -260,3 +298,4 @@ while run:
 
 pygame.quit()
 sys.exit()
+
