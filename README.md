@@ -1,6 +1,3 @@
-In this project, we have coded a game from scratch using PyGame in Python.
-This has taught us how basic game coding works, and given us a further intuition into how the mechanics work.
+Developed from scratch in Python using the Pygame library, this project served as a collaborative deep-dive into game development for our three-person team. By building every mechanic from the ground up, we gained a practical understanding of game loops, collision detection, and state management.
 
-You play as a charcter that has watched their loved ones die from a mysterious and deadly entity that is endlessly growing.
-
-Will you escape the entity, or will it consume you?
+The Story: You play as a survivor forced to witness the loss of your loved ones to a mysterious, ever-growing entity. Will you find a way to escape its reach, or will you be its next victim?
