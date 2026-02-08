@@ -4,6 +4,6 @@ The Story: You play as a survivor forced to witness the loss of your loved ones 
 
 Contributors: Anna Cornelie Linge, Akira Sjasmin Yri, Victoria Vu
 
-Run-command: "Run"-button in Python-file, or 
+Run-command: "Run"-button in Python-file, or type 'python main.py' in the terminal.
 
 Controls: SPACE to jump, arrow-keys to move.
